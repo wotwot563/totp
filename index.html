@@ -124,6 +124,7 @@ let starttimer = setInterval(() => {
     let seconds = new Date().getSeconds();
     console.log(seconds);
     if (seconds == 0 || seconds == 30) {
+        renew_otp();
         let timerId = setInterval(() => renew_otp(), 30000);
         clearInterval(starttimer);
     }
