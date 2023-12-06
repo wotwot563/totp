@@ -1,0 +1,134 @@
+<style>
+#totp_list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
+    padding: 10px;
+    background-color: #f1f3f5;
+    border-bottom: 1px solid #ccc;
+}
+
+#totp_list > div {
+  display: block;
+  padding: 15px 20px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+    border-top-color: rgb(204, 204, 204);
+    border-right-color: rgb(204, 204, 204);
+    border-bottom-color: rgb(204, 204, 204);
+    border-left-color: rgb(204, 204, 204);
+  border-radius: 3px;
+  transition: all .1s linear;
+  margin: 10px;
+}
+</style>
+
+
+ <body onload="get_seeds()"> 
+
+<script src='jsOTP.js'></script>
+
+<!--  -->
+<label>name</label>
+<input type="text" id="name" name="name" required/>
+<label>seed</label>
+<input type="text" id="seed" name="seed" required/>
+<button type="button" onclick="add_seed()">Add seed</button> 
+
+<!-- TOTP entries -->
+<div id='totp_list'>
+
+</div>
+
+<script>
+
+// get seed values from inputfield
+function add_seed() {
+    let seed_name = document.getElementById("name").value
+    let seed_seed = document.getElementById("seed").value
+    
+    document.getElementById("name").value = ""
+    document.getElementById("seed").value = ""
+    if (localStorage.getItem(seed_name) && localStorage.getItem(seed_name) == seed_seed){
+        alert("seed already exists")
+    }else if(localStorage.getItem(seed_name) && localStorage.getItem(seed_name) != seed_seed){
+        alert("Seed name already exists")
+    }else{
+        add_seed1(seed_name, seed_seed);
+    }    
+}
+
+// Add seed to the page and localstorage
+function add_seed1(name,seed){
+    console.log(seed);
+    let code = new jsOTP.totp().getOtp(seed);
+    document.getElementById("totp_list").innerHTML += '<div class="totp_object"><p class="name">'+name + '</p><p class="code">' + code + '</p><p hidden class="seed">' + seed + '</p><div><p style="float:left; padding-left: 20px" onclick="show_seed()">👁</p><p style="float:right; padding-right: 20px" onclick="delete_entry()">🗑</p></div></div>'
+    localStorage.setItem(name,seed);
+
+}
+
+// Toggle hidden element of the seed value
+function show_seed() {
+    for (var j = 0; j < event.srcElement.parentElement.parentElement.childNodes.length; j++) {
+        if (event.srcElement.parentElement.parentElement.childNodes[j].className == "seed") {
+            if(event.srcElement.parentElement.parentElement.childNodes[j].hasAttribute("hidden")){
+                event.srcElement.parentElement.parentElement.childNodes[j].removeAttribute("hidden")
+            } else {
+                event.srcElement.parentElement.parentElement.childNodes[j].setAttribute("hidden","")
+            }
+        }
+    }
+}
+
+// Remove totp entry
+function delete_entry(){
+    for (var j = 0; j < event.srcElement.parentElement.parentElement.childNodes.length; j++) {
+        if (event.srcElement.parentElement.parentElement.childNodes[j].className == "name") {
+            localStorage.removeItem(event.srcElement.parentElement.parentElement.childNodes[j].innerText)
+        }
+    }
+    event.srcElement.parentElement.parentElement.remove()
+}
+
+// Load seeds from localstorage
+function get_seeds(){
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        console.log({key, value})
+        add_seed1(key,value)
+    }
+}
+
+// Refresh OTP codes
+function renew_otp() {
+    console.log("renewing")
+    let totps = document.getElementsByClassName("totp_object")
+    for(let i = 0; i<totps.length; i++){
+        let code_node = null;
+        let otp = null;
+        for (var j = 0; j < totps[i].childNodes.length; j++) {
+            if (totps[i].childNodes[j].className == "seed") {
+                console.log(totps[i].childNodes[j])
+              otp = new jsOTP.totp().getOtp(totps[i].childNodes[j].innerText);
+            }
+            if (totps[i].childNodes[j].className == "code") {
+              code_node = totps[i].childNodes[j]
+            }
+        }
+        code_node.innerText = otp
+    }
+}
+
+// start refresh timer on 0 or 30 second to loop otp correctly
+let starttimer = setInterval(() => {
+    let seconds = new Date().getSeconds();
+    console.log(seconds);
+    if (seconds == 0 || seconds == 30) {
+        let timerId = setInterval(() => renew_otp(), 30000);
+        clearInterval(starttimer);
+    }
+},1000);
+
+
+</script>   
+</body>
